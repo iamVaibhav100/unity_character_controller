@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -20,6 +18,13 @@ public class Player : MonoBehaviour
     [SerializeField] private float groundDist;
     [SerializeField] private LayerMask ground;
 
+    [Header("Dash info")]
+    [SerializeField] private float dashDuration;
+    private float dashTime;
+    [SerializeField] private int dashSpeed;
+    [SerializeField] private float dashCoolDown;
+    private float dashCoolDownTimer;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -35,6 +40,9 @@ public class Player : MonoBehaviour
         collisonCheck();
         flipController();
 
+        dashTime -= Time.deltaTime;
+        dashCoolDownTimer -= Time.deltaTime;
+
         AnimatorController();
     }
 
@@ -47,11 +55,32 @@ public class Player : MonoBehaviour
             Jump();
 
         }
+
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            DashAbility();
+        }
+    }
+
+    private void DashAbility()
+    {
+        if (dashCoolDownTimer < 0)
+        {
+            dashCoolDownTimer = dashCoolDown;
+            dashTime = dashDuration;
+        }
     }
 
     private void Movement()
     {
-        rb.velocity = new Vector2(x * moveSpeed, rb.velocity.y);
+        if (dashTime > 0)
+        {
+            rb.velocity = new Vector2(x * dashSpeed, 0);
+        }
+        else
+        {
+            rb.velocity = new Vector2(x * moveSpeed, rb.velocity.y);
+        }
     }
 
     private void Jump()
@@ -75,6 +104,7 @@ public class Player : MonoBehaviour
 
         anim.SetBool("isMoving", isMoving);
         anim.SetBool("isGrounded", isGrounded);
+        anim.SetBool("isDashing", dashTime > 0);
 
     }
 
@@ -85,7 +115,8 @@ public class Player : MonoBehaviour
         transform.Rotate(0, 180, 0);
     }
 
-    private void flipController() { 
+    private void flipController()
+    {
         if (rb.velocity.x < 0 && isFacingRight)
         {
             flip();
