@@ -25,6 +25,10 @@ public class Player : MonoBehaviour
     [SerializeField] private float dashCoolDown;
     private float dashCoolDownTimer;
 
+    [Header("Better jump")]
+    [SerializeField] private float fallMultiplier = 2.5f;
+    [SerializeField] private float lowFallMultiplier = 2.0f;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -39,11 +43,22 @@ public class Player : MonoBehaviour
         CheckInput();
         collisonCheck();
         flipController();
+        BetterJump();
 
         dashTime -= Time.deltaTime;
         dashCoolDownTimer -= Time.deltaTime;
 
         AnimatorController();
+    }
+
+    private void BetterJump()
+    {
+        if (rb.velocity.y < 0)
+        {
+            rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
+        } else if (rb.velocity.y > 0 && !Input.GetKey(KeyCode.Space)) {
+            rb.velocity += Vector2.up * Physics2D.gravity.y * (lowFallMultiplier - 1) * Time.deltaTime;
+        } 
     }
 
     private void CheckInput()
