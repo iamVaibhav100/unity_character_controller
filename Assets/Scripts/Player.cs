@@ -6,7 +6,7 @@ public class Player : MonoBehaviour
     private Rigidbody2D rb;
     private Animator anim;
 
-    private float x;
+    private float xInput;
     [SerializeField] private float moveSpeed;
     [SerializeField] private float jumpForce;
 
@@ -29,6 +29,14 @@ public class Player : MonoBehaviour
     [SerializeField] private float fallMultiplier = 2.5f;
     [SerializeField] private float lowFallMultiplier = 2.0f;
 
+    [Header("Attack info")]
+    [SerializeField] private float attackComboTime;
+    private float attackComboWindow;
+    private int attackComboCount;
+    private bool isAttacking;
+
+
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -40,6 +48,7 @@ public class Player : MonoBehaviour
     void Update()
     {
         Movement();
+        IsMoving();
         CheckInput();
         collisonCheck();
         flipController();
@@ -47,6 +56,7 @@ public class Player : MonoBehaviour
 
         dashTime -= Time.deltaTime;
         dashCoolDownTimer -= Time.deltaTime;
+        attackComboWindow -= Time.deltaTime;
 
         AnimatorController();
     }
@@ -61,9 +71,25 @@ public class Player : MonoBehaviour
         } 
     }
 
+    public void AttackOver()
+    {
+        isAttacking = false;
+        attackComboCount++;
+
+        if (attackComboCount > 2)
+        {
+            attackComboCount = 0;
+        }
+    }
+
     private void CheckInput()
     {
-        x = Input.GetAxisRaw("Horizontal");
+        xInput = Input.GetAxisRaw("Horizontal");
+
+        if (Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            StartAttackEvent();
+        }
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -77,9 +103,22 @@ public class Player : MonoBehaviour
         }
     }
 
+    private void StartAttackEvent()
+    {
+        if (!isGrounded)
+            return;
+
+
+        if (attackComboWindow < 0)
+            attackComboCount = 0;
+
+        isAttacking = true;
+        attackComboWindow = attackComboTime;
+    }
+
     private void DashAbility()
     {
-        if (dashCoolDownTimer < 0)
+        if (dashCoolDownTimer < 0 && !isAttacking)
         {
             dashCoolDownTimer = dashCoolDown;
             dashTime = dashDuration;
@@ -88,13 +127,18 @@ public class Player : MonoBehaviour
 
     private void Movement()
     {
-        if (dashTime > 0)
+        if (isAttacking)
         {
-            rb.velocity = new Vector2(x * dashSpeed, 0);
+            rb.velocity = new Vector2(0, 0);
+        }
+
+        else if (dashTime > 0 && IsMoving())
+        {
+            rb.velocity = new Vector2(xInput * dashSpeed, 0);
         }
         else
         {
-            rb.velocity = new Vector2(x * moveSpeed, rb.velocity.y);
+            rb.velocity = new Vector2(xInput * moveSpeed, rb.velocity.y);
         }
     }
 
@@ -111,15 +155,20 @@ public class Player : MonoBehaviour
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundDist, ground);
     }
 
+    private bool IsMoving()
+    {
+        return rb.velocity.x != 0;
+    }
+
     private void AnimatorController()
     {
-        bool isMoving = rb.velocity.x != 0;
-
         anim.SetFloat("yVelocity", rb.velocity.y);
 
-        anim.SetBool("isMoving", isMoving);
+        anim.SetBool("isMoving", IsMoving());
         anim.SetBool("isGrounded", isGrounded);
-        anim.SetBool("isDashing", dashTime > 0);
+        anim.SetBool("isDashing", dashTime > 0 && IsMoving());
+        anim.SetBool("isAttacking", isAttacking);
+        anim.SetInteger("attackComboCount", attackComboCount);
 
     }
 
